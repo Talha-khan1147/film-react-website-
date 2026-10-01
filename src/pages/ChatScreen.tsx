@@ -121,15 +121,15 @@ export const ChatScreen: React.FC = () => {
             style={{ cursor: 'pointer' }}
           >
             <Avatar
-              src={chat.avatar || counterpart.avatar}
-              name={chat.name}
+              src={chat.type === 'direct' ? counterpart.avatar : (chat.avatar || counterpart.avatar)}
+              name={chat.type === 'direct' ? counterpart.name : chat.name}
               size="md"
               status={counterpart.status}
               showStatus={chat.type === 'direct'}
             />
           </div>
         }
-        title={chat.name}
+        title={chat.type === 'direct' ? counterpart.name : chat.name}
         subtitle={
           isCounterpartTyping ? (
             <span style={{ color: theme.colors.primary, fontWeight: 500 }}>typing...</span>

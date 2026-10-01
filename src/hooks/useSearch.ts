@@ -41,11 +41,11 @@ export function useSearch(chats: Chat[]) {
 
   const filteredContacts = useMemo(() => {
     if (!isSearching) return contacts;
-    const q = debouncedQuery.toLowerCase();
+    const q = debouncedQuery.toLowerCase().trim();
     return contacts.filter(
       (c) =>
-        c.name.toLowerCase().includes(q) ||
-        c.username.toLowerCase().includes(q) ||
+        (c.name && c.name.toLowerCase().includes(q)) ||
+        (c.username && c.username.toLowerCase().includes(q)) ||
         (c.email && c.email.toLowerCase().includes(q))
     );
   }, [contacts, debouncedQuery, isSearching]);

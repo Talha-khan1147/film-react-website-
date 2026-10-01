@@ -12,6 +12,7 @@ import {
   Shield,
   Volume2,
   LogOut,
+  Sparkles,
 } from 'lucide-react';
 import { useTheme } from '../theme/ThemeProvider';
 import { useAuth } from '../hooks/useAuth';
@@ -22,6 +23,7 @@ import { SettingItem } from '../components/settings/SettingItem';
 import { Modal } from '../components/common/Modal';
 import { PrimaryButton } from '../components/common/PrimaryButton';
 import { SecondaryButton } from '../components/common/SecondaryButton';
+import { SplashScreen } from '../components/common/SplashScreen';
 import { ROUTES } from '../constants/routes';
 
 export const SettingsScreen: React.FC = () => {
@@ -34,6 +36,7 @@ export const SettingsScreen: React.FC = () => {
   const [readReceipts, setReadReceipts] = useState(true);
   const [activeStatus, setActiveStatus] = useState(true);
   const [showLogoutModal, setShowLogoutModal] = useState(false);
+  const [showSplashPreview, setShowSplashPreview] = useState(false);
 
   const handleConfirmLogout = async () => {
     setShowLogoutModal(false);
@@ -203,12 +206,26 @@ export const SettingsScreen: React.FC = () => {
             rightValue="v2.4.0-pro"
           />
           <SettingItem
+            icon={<Sparkles size={18} color="#A855F7" />}
+            title="Interactive Splash Screen"
+            subtitle="Preview glowing animations & 3D tilt aura icon"
+            onClick={() => setShowSplashPreview(true)}
+          />
+          <SettingItem
             icon={<Shield size={18} />}
             title="Terms & Privacy Policy"
             onClick={() => alert('AuraChat strictly protects your personal data.')}
           />
         </div>
       </ScreenContainer>
+
+      {/* Interactive Splash Screen Preview Overlay */}
+      {showSplashPreview && (
+        <SplashScreen
+          minDuration={1800}
+          onFinish={() => setShowSplashPreview(false)}
+        />
+      )}
 
       {/* Logout Confirmation Modal */}
       <Modal

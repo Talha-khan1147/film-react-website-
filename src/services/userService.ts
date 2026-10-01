@@ -70,12 +70,14 @@ export const userService = {
    * Subscribe to all users in real-time (for contacts/search).
    */
   subscribeToUsers(callback: (users: User[]) => void): Unsubscribe {
-    const q = query(collection(db, USERS_COLLECTION), orderBy('name'));
-    return onSnapshot(q, (snapshot) => {
-      const users: User[] = snapshot.docs.map((doc) => ({
-        ...(doc.data() as User),
-        id: doc.id,
-      }));
+    const colRef = collection(db, USERS_COLLECTION);
+    return onSnapshot(colRef, (snapshot) => {
+      const users: User[] = snapshot.docs
+        .map((doc) => ({
+          ...(doc.data() as User),
+          id: doc.id,
+        }))
+        .sort((a, b) => (a.name || '').localeCompare(b.name || ''));
       callback(users);
     }, (error) => {
       console.error('Error subscribing to users:', error);

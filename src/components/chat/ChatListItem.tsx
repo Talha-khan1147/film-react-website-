@@ -7,6 +7,7 @@ import { Badge } from '../common/Badge';
 import { formatChatListTime } from '../../utils/dateUtils';
 import { truncateText } from '../../utils/formatters';
 import { MessageStatus } from './MessageStatus';
+import { useAuth } from '../../hooks/useAuth';
 
 interface ChatListItemProps {
   chat: Chat;
@@ -26,13 +27,16 @@ export const ChatListItem: React.FC<ChatListItemProps> = ({
   onDelete,
 }) => {
   const { theme } = useTheme();
+  const { user: currentUser } = useAuth();
   const [isHovered, setIsHovered] = useState(false);
   const [showMenu, setShowMenu] = useState(false);
 
-  // For direct chats, get counterpart status
-  const counterpart = chat.participants.find((p) => p.id !== 'user_current');
+  // For direct chats, get counterpart (the other person relative to current user)
+  const counterpart = chat.participants?.find((p) => p.id !== currentUser?.id) || chat.participants?.[0];
+  const displayName = chat.type === 'direct' && counterpart ? counterpart.name : chat.name;
+  const displayAvatar = chat.type === 'direct' && counterpart ? counterpart.avatar : (chat.avatar || counterpart?.avatar);
   const lastMsg = chat.lastMessage;
-  const isOutgoingLast = lastMsg?.senderId === 'user_current';
+  const isOutgoingLast = lastMsg?.senderId === currentUser?.id;
 
   return (
     <div
@@ -63,8 +67,8 @@ export const ChatListItem: React.FC<ChatListItemProps> = ({
       {/* Avatar with Status */}
       <div style={{ marginRight: 14, flexShrink: 0 }}>
         <Avatar
-          src={chat.avatar || counterpart?.avatar}
-          name={chat.name}
+          src={displayAvatar}
+          name={displayName}
           size="lg"
           status={counterpart?.status}
           showStatus={chat.type === 'direct'}
@@ -96,7 +100,7 @@ export const ChatListItem: React.FC<ChatListItemProps> = ({
               marginRight: 8,
             }}
           >
-            {chat.name}
+            {displayName}
           </div>
 
           <div

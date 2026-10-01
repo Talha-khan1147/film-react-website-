@@ -11,6 +11,9 @@
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview",
+    "build:apk": "eas build --platform android --profile preview",
+    "build:staging": "eas build --platform android --profile staging",
+    "deploy:staging": "npm run build && firebase deploy --only hosting",
     "backup:drive": "node scripts/backup-to-drive.js"
   },
   "dependencies": {

@@ -16,17 +16,28 @@ import {
   NotFoundScreen,
   LoginScreen,
 } from './pages';
+import { useAuth } from './hooks/useAuth';
+import { SplashScreen } from './components/common/SplashScreen';
 import { ROUTES } from './constants/routes';
 
 const Router = Platform.OS === 'web' ? BrowserRouter : MemoryRouter;
 
-export function App() {
+function AppNavigation() {
+  const { isLoading } = useAuth();
+  const [showSplash, setShowSplash] = React.useState(true);
+
   return (
-    <ThemeProvider>
-      <AuthProvider>
-        <Router>
-          <AppLayout>
-            <Routes>
+    <>
+      {showSplash && (
+        <SplashScreen
+          isLoading={isLoading}
+          minDuration={2000}
+          onFinish={() => setShowSplash(false)}
+        />
+      )}
+      <Router>
+        <AppLayout>
+          <Routes>
               {/* Public Auth Routes */}
               <Route
                 path={ROUTES.LOGIN}
@@ -100,9 +111,18 @@ export function App() {
             </Routes>
           </AppLayout>
         </Router>
-      </AuthProvider>
-    </ThemeProvider>
-  );
-}
+      </>
+    );
+  }
 
-export default App;
+  export function App() {
+    return (
+      <ThemeProvider>
+        <AuthProvider>
+          <AppNavigation />
+        </AuthProvider>
+      </ThemeProvider>
+    );
+  }
+
+  export default App;

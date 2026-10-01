@@ -57,19 +57,24 @@ export const messageService = {
     const now = new Date();
     const messageId = generateId('msg');
 
-    const newMessage: Message = {
+    const newMessage: Record<string, any> = {
       id: messageId,
       chatId: params.chatId,
       senderId: params.senderId,
-      text: params.text,
+      text: params.text || '',
       type: params.attachments && params.attachments.length > 0 ? params.attachments[0].type : 'text',
       status: 'sent',
       timestamp: now.toISOString(),
       dateKey: now.toISOString().split('T')[0],
       reactions: [],
-      replyTo: params.replyTo,
-      attachments: params.attachments,
     };
+
+    if (params.replyTo) {
+      newMessage.replyTo = params.replyTo;
+    }
+    if (params.attachments && params.attachments.length > 0) {
+      newMessage.attachments = params.attachments;
+    }
 
     // Write message to subcollection
     await setDoc(

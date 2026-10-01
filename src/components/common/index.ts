@@ -16,3 +16,4 @@ export * from './BottomSheet';
 export * from './UserListItem';
 export * from './OfflineBanner';
 export * from './ProtectedRoute';
+export * from './SplashScreen';

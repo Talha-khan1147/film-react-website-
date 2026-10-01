@@ -61,13 +61,27 @@ export const chatService = {
       return chatId;
     }
 
-    const newChat: Omit<Chat, 'id'> & { participantIds: string[] } = {
+    const newChat: Record<string, any> = {
       type: 'direct',
-      name: otherUser.name,
-      avatar: otherUser.avatar,
+      name: otherUser.name || 'Chat',
+      avatar: otherUser.avatar || '',
       participants: [
-        { id: currentUser.id, name: currentUser.name, username: currentUser.username, avatar: currentUser.avatar, status: currentUser.status, bio: currentUser.bio },
-        { id: otherUser.id, name: otherUser.name, username: otherUser.username, avatar: otherUser.avatar, status: otherUser.status, bio: otherUser.bio },
+        {
+          id: currentUser.id,
+          name: currentUser.name || '',
+          username: currentUser.username || '',
+          avatar: currentUser.avatar || '',
+          status: currentUser.status || 'offline',
+          bio: currentUser.bio || '',
+        },
+        {
+          id: otherUser.id,
+          name: otherUser.name || '',
+          username: otherUser.username || '',
+          avatar: otherUser.avatar || '',
+          status: otherUser.status || 'offline',
+          bio: otherUser.bio || '',
+        },
       ],
       participantIds: [currentUser.id, otherUser.id],
       unreadCount: 0,
