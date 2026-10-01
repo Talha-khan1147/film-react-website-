@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "14039944466",
+    "project_id": "chatting-5b811",
+    "storage_bucket": "chatting-5b811.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:14039944466:android:8d194b17908b76da78f7cb",
+        "android_client_info": {
+          "package_name": "com.aurachat.app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAg019oy3BGcBW-6GtOvYy7WMJmEVVheNs"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

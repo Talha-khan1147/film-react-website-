@@ -1,0 +1,18 @@
+{
+  "projects": {
+    "default": "chatting-5b811"
+  },
+  "targets": {
+    "chatting-5b811": {
+      "hosting": {
+        "chatting-5b811-d273b": [
+          "chatting-5b811-d273b"
+        ],
+        "chatting-5b811": [
+          "chatting-5b811"
+        ]
+      }
+    }
+  },
+  "etags": {}
+}

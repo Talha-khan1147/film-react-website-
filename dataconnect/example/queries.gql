@@ -1,0 +1,52 @@
+mutation CreateUser @auth(level: USER) {
+  user_insert(data: {id_expr: "auth.uid", email: "test@example.com", displayName: "Tester"})
+}
+
+mutation CreateProfile @auth(level: USER) {
+  profile_insert(data: {userId_expr: "auth.uid", displayName: "Test Profile"})
+}
+
+mutation UpdateProfile($displayName: String!) @auth(level: USER) {
+  profile_update(key: {id_expr: "auth.uid"}, data: {displayName: $displayName})
+}
+
+mutation DeleteProfile @auth(level: USER) {
+  profile_delete(key: {id_expr: "auth.uid"})
+}
+
+query GetMyProfile @auth(level: USER) {
+  profile(key: {id_expr: "auth.uid"}) {
+    displayName
+    statusMessage
+  }
+}
+
+mutation CreateConversation @auth(level: USER) {
+  conversation_insert(data: {createdAt_expr: "request.time"})
+}
+
+mutation CreateConversationMember($convId: UUID!) @auth(level: USER) {
+  conversationMember_insert(data: {conversationId: $convId, userId_expr: "auth.uid"})
+}
+
+query ListMyConversations @auth(level: USER) {
+  conversations(where: {conversationMembers_on_conversation: {exist: {userId: {eq_expr: "auth.uid"}}}}) {
+    id
+    lastMessageSnippet
+  }
+}
+
+mutation SendMessage($convId: UUID!, $text: String!) @auth(level: USER) {
+  message_insert(data: {conversationId: $convId, senderId_expr: "auth.uid", text: $text, createdAt_expr: "request.time"})
+}
+
+query ListMessages($convId: UUID!) @auth(level: USER) {
+  messages(where: {conversationId: {eq: $convId}}, orderBy: [{createdAt: DESC}]) {
+    text
+    sender { displayName }
+  }
+}
+
+mutation DeleteMessage($id: UUID!) @auth(level: USER) {
+  message_delete(id: $id)
+}

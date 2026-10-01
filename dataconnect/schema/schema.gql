@@ -1,0 +1,30 @@
+type User @table {
+  email: String!
+  displayName: String!
+  avatarUrl: String
+  bio: String
+}
+
+type Profile @table {
+  user: User!
+  displayName: String!
+  themePreference: String
+  statusMessage: String
+}
+
+type Conversation @table {
+  createdAt: Timestamp!
+  lastMessageSnippet: String
+}
+
+type ConversationMember @table(key: ["conversation", "user"]) {
+  conversation: Conversation!
+  user: User!
+}
+
+type Message @table {
+  text: String!
+  createdAt: Timestamp!
+  sender: User!
+  conversation: Conversation!
+}

@@ -1,0 +1,46 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // Helper functions
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+    
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+
+    // User Profiles
+    match /users/{userId} {
+      // Any authenticated user can read profiles
+      allow read: if isAuthenticated();
+      // Only the user themselves can create or update their own profile
+      allow create, update: if isOwner(userId);
+      allow delete: if false;
+    }
+
+    // Chats and Conversations
+    match /chats/{chatId} {
+      // Authenticated users who are participants can read/write
+      allow read: if isAuthenticated();
+      allow create, update: if isAuthenticated();
+      allow delete: if isAuthenticated();
+
+      // Nested Messages in a Chat
+      match /messages/{messageId} {
+        allow read: if isAuthenticated();
+        allow create: if isAuthenticated() && request.resource.data.senderId == request.auth.uid;
+        allow update, delete: if isAuthenticated();
+      }
+    }
+
+    // Stories
+    match /stories/{storyId} {
+      allow read: if isAuthenticated();
+      allow create: if isAuthenticated();
+      allow update, delete: if isAuthenticated() && resource.data.userId == request.auth.uid;
+    }
+  }
+}

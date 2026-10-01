@@ -1,11 +1,14 @@
 export const ROUTES = {
   HOME: '/',
+  CHATS: '/',
+  CHAT_DETAILS: '/chat/:id',
+  STORIES: '/stories',
   SEARCH: '/search',
-  MOVIE_DETAILS: '/movie/:id',
-  WATCH: '/watch/:id',
-  FAVORITES: '/favorites',
-  ABOUT: '/about',
+  NOTIFICATIONS: '/notifications',
+  PROFILE: '/profile',
+  SETTINGS: '/settings',
+  LOGIN: '/login',
+  REGISTER: '/register',
 };
 
-export const getMovieDetailsRoute = (id) => `/movie/${encodeURIComponent(id)}`;
-export const getWatchRoute = (id) => `/watch/${encodeURIComponent(id)}`;
+export const getChatRoute = (chatId) => `/chat/${chatId}`;

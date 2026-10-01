@@ -1,0 +1,27 @@
+{
+  "expo": {
+    "name": "AuraChat",
+    "slug": "aurachat",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "automatic",
+    "newArchEnabled": true,
+    "splash": {
+      "resizeMode": "contain",
+      "backgroundColor": "#0B0F19"
+    },
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.aurachat.app"
+    },
+    "android": {
+      "adaptiveIcon": {
+        "backgroundColor": "#0B0F19"
+      },
+      "package": "com.aurachat.app"
+    },
+    "web": {
+      "bundler": "metro"
+    }
+  }
+}

@@ -1,0 +1,83 @@
+mutation CreateSeedData @transaction {
+  user_insertMany(data: [
+    {
+      id: "550e8400-e29b-41d4-a716-446655440001",
+      email: "alice@example.com",
+      displayName: "Alice",
+      bio: "Software Engineer"
+    },
+    {
+      id: "550e8400-e29b-41d4-a716-446655440002",
+      email: "bob@example.com",
+      displayName: "Bob",
+      bio: "Designer"
+    },
+    {
+      id: "550e8400-e29b-41d4-a716-446655440003",
+      email: "charlie@example.com",
+      displayName: "Charlie",
+      bio: "Product Manager"
+    }
+  ])
+  profile_insertMany(data: [
+    {
+      userId: "550e8400-e29b-41d4-a716-446655440001",
+      displayName: "Alice Dev",
+      themePreference: "dark"
+    },
+    {
+      userId: "550e8400-e29b-41d4-a716-446655440002",
+      displayName: "Bob Design",
+      themePreference: "light"
+    },
+    {
+      userId: "550e8400-e29b-41d4-a716-446655440003",
+      displayName: "Charlie PM",
+      themePreference: "dark"
+    }
+  ])
+  conversation_insertMany(data: [
+    {
+      id: "b80e8400-e29b-41d4-a716-446655440001",
+      createdAt: "2023-10-01T10:00:00Z",
+      lastMessageSnippet: "Hello team!"
+    },
+    {
+      id: "b80e8400-e29b-41d4-a716-446655440002",
+      createdAt: "2023-10-01T11:00:00Z",
+      lastMessageSnippet: "Project update."
+    }
+  ])
+  conversationMember_insertMany(data: [
+    {
+      conversationId: "b80e8400-e29b-41d4-a716-446655440001",
+      userId: "550e8400-e29b-41d4-a716-446655440001"
+    },
+    {
+      conversationId: "b80e8400-e29b-41d4-a716-446655440001",
+      userId: "550e8400-e29b-41d4-a716-446655440002"
+    },
+    {
+      conversationId: "b80e8400-e29b-41d4-a716-446655440002",
+      userId: "550e8400-e29b-41d4-a716-446655440001"
+    },
+    {
+      conversationId: "b80e8400-e29b-41d4-a716-446655440002",
+      userId: "550e8400-e29b-41d4-a716-446655440003"
+    }
+  ])
+  message_insertMany(data: [
+    {
+      text: "Hello team!",
+      createdAt: "2023-10-01T10:05:00Z",
+      conversationId: "b80e8400-e29b-41d4-a716-446655440001",
+      senderId: "550e8400-e29b-41d4-a716-446655440001"
+    },
+    {
+      text: "Project update.",
+      createdAt: "2023-10-01T11:05:00Z",
+      conversationId: "b80e8400-e29b-41d4-a716-446655440002",
+      senderId: "550e8400-e29b-41d4-a716-446655440003"
+    }
+  ])
+}

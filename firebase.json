@@ -1,0 +1,56 @@
+{
+  "auth": {
+    "authorizedDomains": [
+      "localhost",
+      "chatting-5b811.web.app",
+      "chatting-5b811-d273b.web.app",
+      "chatting-5b811.firebaseapp.com"
+    ],
+    "providers": {
+      "emailPassword": true,
+      "googleSignIn": {
+        "oAuthBrandDisplayName": "AuraChat",
+        "supportEmail": "support@aurachat.app"
+      }
+    }
+  },
+  "firestore": {
+    "rules": "firestore.rules",
+    "indexes": "firestore.indexes.json"
+  },
+  "dataconnect": {
+    "source": "dataconnect"
+  },
+  "hosting": [
+    {
+      "target": "chatting-5b811-d273b",
+      "public": "dist",
+      "ignore": [
+        "firebase.json",
+        "**/.*",
+        "**/node_modules/**"
+      ],
+      "rewrites": [
+        {
+          "source": "**",
+          "destination": "/index.html"
+        }
+      ]
+    },
+    {
+      "target": "chatting-5b811",
+      "public": "dist",
+      "ignore": [
+        "firebase.json",
+        "**/.*",
+        "**/node_modules/**"
+      ],
+      "rewrites": [
+        {
+          "source": "**",
+          "destination": "/index.html"
+        }
+      ]
+    }
+  ]
+}
