@@ -3,7 +3,8 @@ import { Image, Video, FileText, Camera, Music, Loader2, CloudUpload } from 'luc
 import { BottomSheet } from '../common/BottomSheet';
 import { Attachment } from '../../types/message';
 import { generateId } from '../../utils/formatters';
-import { uploadToGoogleDrive } from '../../services/driveStorageService';
+import { uploadToGoogleDrive, MediaCategory } from '../../services/driveStorageService';
+import { useAuth } from '../../hooks/useAuth';
 
 interface AttachmentModalProps {
   isOpen: boolean;
@@ -16,13 +17,16 @@ export const AttachmentModal: React.FC<AttachmentModalProps> = ({
   onClose,
   onAddAttachment,
 }) => {
+  const { user } = useAuth();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [acceptType, setAcceptType] = useState<string>('*/*');
+  const [currentCategory, setCurrentCategory] = useState<MediaCategory>('Documents');
   const [isUploading, setIsUploading] = useState(false);
   const [uploadStatus, setUploadStatus] = useState('');
 
-  const triggerFileSelect = (accept: string) => {
+  const triggerFileSelect = (accept: string, category: MediaCategory) => {
     setAcceptType(accept);
+    setCurrentCategory(category);
     setTimeout(() => {
       fileInputRef.current?.click();
     }, 50);
@@ -37,7 +41,12 @@ export const AttachmentModal: React.FC<AttachmentModalProps> = ({
     setUploadStatus(`Uploading ${file.name} to 5TB Google Drive...`);
 
     try {
-      const result = await uploadToGoogleDrive(file, file.name);
+      const result = await uploadToGoogleDrive(file, {
+        fileName: file.name,
+        userId: user?.id || 'anonymous',
+        userName: user?.name || 'User',
+        category: currentCategory,
+      });
 
       const attachment: Attachment = {
         id: generateId('att'),
@@ -66,35 +75,35 @@ export const AttachmentModal: React.FC<AttachmentModalProps> = ({
       label: 'Photos',
       icon: <Image size={24} color="#6366F1" />,
       bg: '#EEF2FF',
-      onClick: () => triggerFileSelect('image/*'),
+      onClick: () => triggerFileSelect('image/*', 'Photos'),
     },
     {
       id: 'videos',
       label: 'Videos',
       icon: <Video size={24} color="#8B5CF6" />,
       bg: '#F5F3FF',
-      onClick: () => triggerFileSelect('video/*'),
+      onClick: () => triggerFileSelect('video/*', 'Videos'),
     },
     {
       id: 'camera',
       label: 'Camera',
       icon: <Camera size={24} color="#EC4899" />,
       bg: '#FDF2F8',
-      onClick: () => triggerFileSelect('image/*'),
+      onClick: () => triggerFileSelect('image/*', 'Photos'),
     },
     {
       id: 'document',
       label: 'Document',
       icon: <FileText size={24} color="#10B981" />,
       bg: '#ECFDF5',
-      onClick: () => triggerFileSelect('.pdf,.doc,.docx,.txt,.zip,.rar'),
+      onClick: () => triggerFileSelect('.pdf,.doc,.docx,.txt,.zip,.rar', 'Documents'),
     },
     {
       id: 'audio',
       label: 'Audio Note',
       icon: <Music size={24} color="#F59E0B" />,
       bg: '#FFFBEB',
-      onClick: () => triggerFileSelect('audio/*'),
+      onClick: () => triggerFileSelect('audio/*', 'VoiceNotes'),
     },
   ];
 

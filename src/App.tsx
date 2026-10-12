@@ -15,6 +15,7 @@ import {
   SettingsScreen,
   NotFoundScreen,
   LoginScreen,
+  SetupProfileScreen,
 } from './pages';
 import { useAuth } from './hooks/useAuth';
 import { SplashScreen } from './components/common/SplashScreen';
@@ -34,8 +35,11 @@ function AppNavigation() {
           minDuration={2000}
           onFinish={() => setShowSplash(false)}
         />
-      )}
-      <Router>
+      <Router
+        {...(Platform.OS === 'web'
+          ? { future: { v7_startTransition: true, v7_relativeSplatPath: true } }
+          : {})}
+      >
         <AppLayout>
           <Routes>
               {/* Public Auth Routes */}
@@ -44,6 +48,16 @@ function AppNavigation() {
                 element={
                   <ProtectedRoute requireAuth={false}>
                     <LoginScreen />
+                  </ProtectedRoute>
+                }
+              />
+
+              {/* Onboarding / Profile Setup Route */}
+              <Route
+                path={ROUTES.SETUP_PROFILE}
+                element={
+                  <ProtectedRoute requireAuth={true} allowIncompleteProfile={true}>
+                    <SetupProfileScreen />
                   </ProtectedRoute>
                 }
               />

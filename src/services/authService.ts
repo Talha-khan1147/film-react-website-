@@ -1,6 +1,9 @@
 import { CurrentUserProfile } from '../types/user';
 import {
   signInWithPopup,
+  signInWithRedirect,
+  getRedirectResult,
+  signInAnonymously,
   signOut,
   GoogleAuthProvider,
 } from 'firebase/auth';
@@ -21,9 +24,9 @@ export function mapFirebaseAuthError(error: any): string {
     case 'auth/cancelled-popup-request':
       return 'Google sign-in popup was closed before completing.';
     case 'auth/popup-blocked':
-      return 'Popup was blocked by your browser. Please allow popups for this site.';
+      return 'Popup was blocked by your browser. Please allow popups or use Quick Sign-In.';
     case 'auth/operation-not-allowed':
-      return 'Google sign-in is disabled in your Firebase Console. Please enable it under Authentication > Sign-in method.';
+      return 'Sign-in method is disabled in your Firebase Console. Please enable Google / Anonymous under Authentication > Sign-in method.';
     case 'auth/unauthorized-domain':
       return 'This domain is not authorized in Firebase Console. Add your domain under Authentication > Settings > Authorized domains.';
     case 'auth/network-request-failed':
@@ -56,13 +59,13 @@ export const authService = {
   },
 
   async loginWithGoogle(): Promise<CurrentUserProfile> {
+    const provider = new GoogleAuthProvider();
+    provider.setCustomParameters({ prompt: 'select_account' });
+
     try {
-      const provider = new GoogleAuthProvider();
-      provider.setCustomParameters({ prompt: 'select_account' });
       const result = await signInWithPopup(auth, provider);
       const firebaseUser = result.user;
 
-      // Create or update user profile in Firestore
       const profile = await userService.createOrUpdateUserProfile({
         uid: firebaseUser.uid,
         displayName: firebaseUser.displayName,
@@ -72,13 +75,68 @@ export const authService = {
 
       localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(profile));
       return profile;
+    } catch (popupErr: any) {
+      // If popup was blocked (common on mobile browsers/WebViews), try redirect
+      if (popupErr?.code === 'auth/popup-blocked' || popupErr?.code === 'auth/cancelled-popup-request') {
+        try {
+          await signInWithRedirect(auth, provider);
+          // Flow will continue after redirect
+          return new Promise(() => {});
+        } catch (redirectErr: any) {
+          throw new Error(mapFirebaseAuthError(redirectErr));
+        }
+      }
+      throw new Error(mapFirebaseAuthError(popupErr));
+    }
+  },
+
+  /**
+   * Quick Test / Mobile Sign-In using Firebase Anonymous Auth
+   * Creates a real Firebase session and Firestore user record without popup issues
+   */
+  async loginQuickTest(customName?: string): Promise<CurrentUserProfile> {
+    try {
+      const result = await signInAnonymously(auth);
+      const firebaseUser = result.user;
+
+      const profile = await userService.createOrUpdateUserProfile({
+        uid: firebaseUser.uid,
+        displayName: customName || `User_${firebaseUser.uid.slice(0, 5)}`,
+        email: null,
+        photoURL: null,
+      });
+
+      localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(profile));
+      return profile;
     } catch (err: any) {
       throw new Error(mapFirebaseAuthError(err));
     }
   },
 
+  /**
+   * Check for redirect result on app load
+   */
+  async checkRedirectResult(): Promise<CurrentUserProfile | null> {
+    try {
+      const result = await getRedirectResult(auth);
+      if (result && result.user) {
+        const firebaseUser = result.user;
+        const profile = await userService.createOrUpdateUserProfile({
+          uid: firebaseUser.uid,
+          displayName: firebaseUser.displayName,
+          email: firebaseUser.email,
+          photoURL: firebaseUser.photoURL,
+        });
+        localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(profile));
+        return profile;
+      }
+    } catch (err) {
+      console.warn('Redirect sign-in check failed:', err);
+    }
+    return null;
+  },
+
   async logout(): Promise<void> {
-    // Update status to offline before signing out
     const current = this.getStoredUser();
     if (current?.id) {
       try {
@@ -101,7 +159,6 @@ export const authService = {
     if (!current) return null;
     const updated: CurrentUserProfile = { ...current, ...updates };
 
-    // Persist to Firestore
     if (current.id) {
       userService.updateUserProfile(current.id, updates).catch(() => {});
     }

@@ -18,7 +18,7 @@ export const BottomNav: React.FC = () => {
   if (
     location.pathname.startsWith('/chat/') ||
     location.pathname === ROUTES.LOGIN ||
-    location.pathname === ROUTES.REGISTER
+    location.pathname === ROUTES.SETUP_PROFILE
   ) {
     return null;
   }

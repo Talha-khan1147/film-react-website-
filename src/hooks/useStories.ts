@@ -1,7 +1,7 @@
-import { useState, useCallback } from 'react';
-import { Story, StorySlide } from '../types/story';
+import { useState, useCallback, useEffect } from 'react';
+import { Story } from '../types/story';
 import { useAuth } from './useAuth';
-import { generateId } from '../utils/formatters';
+import { storyService } from '../services/storyService';
 
 export function useStories() {
   const { user } = useAuth();
@@ -9,69 +9,53 @@ export function useStories() {
   const [activeStoryIndex, setActiveStoryIndex] = useState<number | null>(null);
   const [isCreatorOpen, setIsCreatorOpen] = useState(false);
 
-  // Mark a slide as viewed
-  const markSlideViewed = useCallback((storyId: string, slideId: string) => {
-    setStories((prev) =>
-      prev.map((story) => {
-        if (story.id !== storyId) return story;
-        const updatedSlides = story.slides.map((slide) =>
-          slide.id === slideId ? { ...slide, isViewed: true } : slide
-        );
-        const hasUnseen = updatedSlides.some((s) => !s.isViewed);
-        return {
-          ...story,
-          slides: updatedSlides,
-          hasUnseen,
-        };
-      })
-    );
-  }, []);
+  // Subscribe to real-time stories from Firestore
+  useEffect(() => {
+    const currentUserId = user?.id || 'guest';
+    const unsubscribe = storyService.subscribeToStories(currentUserId, (loadedStories) => {
+      setStories(loadedStories);
+    });
 
-  // Post a new story slide
+    return () => unsubscribe();
+  }, [user]);
+
+  // Mark a slide as viewed in Firestore
+  const markSlideViewed = useCallback(
+    (storyId: string, slideId: string) => {
+      if (!user) return;
+      storyService.markSlideViewed(storyId, slideId, {
+        id: user.id,
+        name: user.name,
+      });
+    },
+    [user]
+  );
+
+  // Post a new story slide to Firestore
   const createStory = useCallback(
-    (params: {
+    async (params: {
       mediaUrl?: string;
       mediaType: 'image' | 'video' | 'text-card';
       backgroundColor?: string;
       caption?: string;
+      durationMs?: number;
     }) => {
       if (!user) return;
 
-      const newSlide: StorySlide = {
-        id: generateId('slide'),
-        mediaUrl: params.mediaUrl || '',
-        mediaType: params.mediaType,
-        backgroundColor: params.backgroundColor || '#6366F1',
-        caption: params.caption,
-        createdAt: new Date().toISOString(),
-        durationMs: 5000,
-        isViewed: false,
-      };
-
-      setStories((prev) => {
-        const userStoryIndex = prev.findIndex((s) => s.userId === user.id);
-        if (userStoryIndex >= 0) {
-          const updated = [...prev];
-          updated[userStoryIndex] = {
-            ...updated[userStoryIndex],
-            slides: [newSlide, ...updated[userStoryIndex].slides],
-            updatedAt: new Date().toISOString(),
-          };
-          return updated;
-        } else {
-          const newUserStory: Story = {
-            id: generateId('story'),
-            userId: user.id,
-            user: user,
-            hasUnseen: false,
-            updatedAt: new Date().toISOString(),
-            slides: [newSlide],
-          };
-          return [newUserStory, ...prev];
-        }
-      });
-
-      setIsCreatorOpen(false);
+      try {
+        await storyService.postStory({
+          user,
+          mediaUrl: params.mediaUrl,
+          mediaType: params.mediaType,
+          backgroundColor: params.backgroundColor,
+          caption: params.caption,
+          durationMs: params.durationMs,
+        });
+      } catch (err) {
+        console.error('Failed to post story to Firestore:', err);
+      } finally {
+        setIsCreatorOpen(false);
+      }
     },
     [user]
   );

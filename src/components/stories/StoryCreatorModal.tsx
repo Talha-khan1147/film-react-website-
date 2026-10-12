@@ -1,9 +1,11 @@
-import React, { useState } from 'react';
-import { Image, Type, Check, Sparkles } from 'lucide-react';
+import React, { useState, useRef } from 'react';
+import { Image, Type, Check, Sparkles, UploadCloud, Loader2 } from 'lucide-react';
 import { Modal } from '../common/Modal';
 import { PrimaryButton } from '../common/PrimaryButton';
 import { SecondaryButton } from '../common/SecondaryButton';
 import { useTheme } from '../../theme/ThemeProvider';
+import { useAuth } from '../../hooks/useAuth';
+import { uploadToGoogleDrive } from '../../services/driveStorageService';
 
 interface StoryCreatorModalProps {
   isOpen: boolean;
@@ -39,10 +41,47 @@ export const StoryCreatorModal: React.FC<StoryCreatorModalProps> = ({
   onPostStory,
 }) => {
   const { theme } = useTheme();
+  const { user } = useAuth();
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
   const [tab, setTab] = useState<'text' | 'photo'>('text');
   const [caption, setCaption] = useState('');
   const [selectedColor, setSelectedColor] = useState(COLOR_PRESETS[0]);
   const [selectedPhoto, setSelectedPhoto] = useState(PHOTO_PRESETS[0]);
+  const [isVideo, setIsVideo] = useState(false);
+  const [isUploadingToDrive, setIsUploadingToDrive] = useState(false);
+  const [uploadStatus, setUploadStatus] = useState('');
+
+  const handleCustomFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
+
+    const file = files[0];
+    const isVid = file.type.startsWith('video/');
+    setIsVideo(isVid);
+    setIsUploadingToDrive(true);
+    setUploadStatus(`Uploading status to Google Drive (Users/${user?.name || 'User'}/Status)...`);
+
+    try {
+      const res = await uploadToGoogleDrive(file, {
+        fileName: file.name,
+        userId: user?.id || 'anonymous',
+        userName: user?.name || 'User',
+        category: 'Status',
+      });
+
+      setSelectedPhoto(res.url);
+      setTab('photo');
+    } catch (err) {
+      console.error('Error uploading story media to Drive:', err);
+    } finally {
+      setIsUploadingToDrive(false);
+      setUploadStatus('');
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
+    }
+  };
 
   const handlePost = () => {
     if (tab === 'text') {
@@ -54,7 +93,7 @@ export const StoryCreatorModal: React.FC<StoryCreatorModalProps> = ({
       });
     } else {
       onPostStory({
-        mediaType: 'image',
+        mediaType: isVideo ? 'video' : 'image',
         mediaUrl: selectedPhoto,
         caption: caption.trim() || undefined,
       });
@@ -63,7 +102,16 @@ export const StoryCreatorModal: React.FC<StoryCreatorModalProps> = ({
   };
 
   return (
-    <Modal isOpen={isOpen} onClose={onClose} title="Create Story" maxWidth={420}>
+    <Modal isOpen={isOpen} onClose={onClose} title="Create WhatsApp Status" maxWidth={420}>
+      {/* Hidden file input */}
+      <input
+        type="file"
+        ref={fileInputRef}
+        accept="image/*,video/*"
+        onChange={handleCustomFileUpload}
+        style={{ display: 'none' }}
+      />
+
       <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
         {/* Tab switcher: Text vs Photo */}
         <div
@@ -95,7 +143,7 @@ export const StoryCreatorModal: React.FC<StoryCreatorModalProps> = ({
             }}
           >
             <Type size={16} />
-            <span>Text Card</span>
+            <span>Text Status</span>
           </button>
 
           <button
@@ -119,7 +167,7 @@ export const StoryCreatorModal: React.FC<StoryCreatorModalProps> = ({
             }}
           >
             <Image size={16} />
-            <span>Photo Story</span>
+            <span>Media Status</span>
           </button>
         </div>
 
@@ -138,46 +186,81 @@ export const StoryCreatorModal: React.FC<StoryCreatorModalProps> = ({
             boxShadow: theme.shadows.md,
           }}
         >
-          {tab === 'photo' && (
-            <img
-              src={selectedPhoto}
-              alt="Story preview"
-              style={{
-                position: 'absolute',
-                inset: 0,
-                width: '100%',
-                height: '100%',
-                objectFit: 'cover',
-              }}
-            />
-          )}
-
-          {/* Dark gradient in photo mode */}
-          {tab === 'photo' && (
+          {isUploadingToDrive ? (
             <div
               style={{
-                position: 'absolute',
-                inset: 0,
-                background: 'linear-gradient(to top, rgba(0,0,0,0.7) 0%, transparent 70%)',
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                gap: 8,
+                color: '#FFFFFF',
               }}
-            />
-          )}
+            >
+              <Loader2 size={28} style={{ animation: 'spin 1s linear infinite' }} />
+              <span style={{ fontSize: 12, fontWeight: 500 }}>{uploadStatus}</span>
+            </div>
+          ) : (
+            <>
+              {tab === 'photo' &&
+                (isVideo ? (
+                  <video
+                    src={selectedPhoto}
+                    style={{
+                      position: 'absolute',
+                      inset: 0,
+                      width: '100%',
+                      height: '100%',
+                      objectFit: 'cover',
+                    }}
+                    autoPlay
+                    loop
+                    muted
+                  />
+                ) : (
+                  <img
+                    src={selectedPhoto}
+                    alt="Story preview"
+                    style={{
+                      position: 'absolute',
+                      inset: 0,
+                      width: '100%',
+                      height: '100%',
+                      objectFit: 'cover',
+                    }}
+                  />
+                ))}
 
-          <div
-            style={{
-              position: 'relative',
-              zIndex: 2,
-              color: '#FFFFFF',
-              fontSize: tab === 'text' ? 18 : 14,
-              fontWeight: 600,
-              textAlign: 'center',
-              lineHeight: 1.4,
-              textShadow: '0 1px 3px rgba(0,0,0,0.6)',
-              maxWidth: '90%',
-            }}
-          >
-            {caption || (tab === 'text' ? 'Type your thought or quote below...' : 'Add a caption...')}
-          </div>
+              {tab === 'photo' && (
+                <div
+                  style={{
+                    position: 'absolute',
+                    inset: 0,
+                    background:
+                      'linear-gradient(to top, rgba(0,0,0,0.7) 0%, transparent 70%)',
+                  }}
+                />
+              )}
+
+              <div
+                style={{
+                  position: 'relative',
+                  zIndex: 2,
+                  color: '#FFFFFF',
+                  fontSize: tab === 'text' ? 18 : 14,
+                  fontWeight: 600,
+                  textAlign: 'center',
+                  lineHeight: 1.4,
+                  textShadow: '0 1px 3px rgba(0,0,0,0.6)',
+                  maxWidth: '90%',
+                }}
+              >
+                {caption ||
+                  (tab === 'text'
+                    ? 'Type your thought or quote below...'
+                    : 'Add a caption...')}
+              </div>
+            </>
+          )}
         </div>
 
         {/* Style selection */}
@@ -192,7 +275,7 @@ export const StoryCreatorModal: React.FC<StoryCreatorModalProps> = ({
                 marginBottom: 8,
               }}
             >
-              Background Style
+              Background Color
             </label>
             <div style={{ display: 'flex', gap: 8, overflowX: 'auto', paddingBottom: 4 }}>
               {COLOR_PRESETS.map((col, idx) => (
@@ -222,30 +305,59 @@ export const StoryCreatorModal: React.FC<StoryCreatorModalProps> = ({
           </div>
         ) : (
           <div>
-            <label
+            <div
               style={{
-                display: 'block',
-                fontSize: 12,
-                fontWeight: 600,
-                color: theme.colors.textMuted,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
                 marginBottom: 8,
               }}
             >
-              Choose Photo
-            </label>
+              <label
+                style={{
+                  fontSize: 12,
+                  fontWeight: 600,
+                  color: theme.colors.textMuted,
+                }}
+              >
+                Choose Photo / Video
+              </label>
+              <button
+                type="button"
+                onClick={() => fileInputRef.current?.click()}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 4,
+                  background: 'transparent',
+                  border: 'none',
+                  fontSize: 12,
+                  fontWeight: 600,
+                  color: theme.colors.primary,
+                  cursor: 'pointer',
+                }}
+              >
+                <UploadCloud size={14} />
+                <span>Upload From Device</span>
+              </button>
+            </div>
+
             <div style={{ display: 'flex', gap: 10 }}>
               {PHOTO_PRESETS.map((photo, idx) => (
                 <button
                   key={idx}
                   type="button"
-                  onClick={() => setSelectedPhoto(photo)}
+                  onClick={() => {
+                    setSelectedPhoto(photo);
+                    setIsVideo(false);
+                  }}
                   style={{
                     flex: 1,
                     height: 54,
                     borderRadius: theme.borderRadius.md,
                     overflow: 'hidden',
                     border:
-                      selectedPhoto === photo
+                      selectedPhoto === photo && !isVideo
                         ? `2px solid ${theme.colors.primary}`
                         : `1px solid ${theme.colors.border}`,
                     cursor: 'pointer',
@@ -258,7 +370,7 @@ export const StoryCreatorModal: React.FC<StoryCreatorModalProps> = ({
                     alt={`Preset ${idx + 1}`}
                     style={{ width: '100%', height: '100%', objectFit: 'cover' }}
                   />
-                  {selectedPhoto === photo && (
+                  {selectedPhoto === photo && !isVideo && (
                     <div
                       style={{
                         position: 'absolute',
@@ -289,14 +401,14 @@ export const StoryCreatorModal: React.FC<StoryCreatorModalProps> = ({
               marginBottom: 6,
             }}
           >
-            {tab === 'text' ? 'Your Message / Quote' : 'Add Caption (Optional)'}
+            {tab === 'text' ? 'Your Message / Status' : 'Add Caption (Optional)'}
           </label>
           <textarea
             value={caption}
             onChange={(e) => setCaption(e.target.value)}
             placeholder={
               tab === 'text'
-                ? 'Share what is inspiring you today...'
+                ? 'Type a status update...'
                 : 'Say something about this moment...'
             }
             rows={3}
@@ -319,10 +431,12 @@ export const StoryCreatorModal: React.FC<StoryCreatorModalProps> = ({
         <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end', marginTop: 8 }}>
           <SecondaryButton label="Cancel" onClick={onClose} />
           <PrimaryButton
-            label="Share to Story"
+            label="Share to Status"
             icon={<Sparkles size={16} />}
             onClick={handlePost}
-            disabled={tab === 'text' && !caption.trim()}
+            disabled={
+              (tab === 'text' && !caption.trim()) || isUploadingToDrive
+            }
           />
         </div>
       </div>

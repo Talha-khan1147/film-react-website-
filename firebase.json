@@ -1,19 +1,4 @@
 {
-  "auth": {
-    "authorizedDomains": [
-      "localhost",
-      "chatting-5b811.web.app",
-      "chatting-5b811-d273b.web.app",
-      "chatting-5b811.firebaseapp.com"
-    ],
-    "providers": {
-      "emailPassword": true,
-      "googleSignIn": {
-        "oAuthBrandDisplayName": "AuraChat",
-        "supportEmail": "support@aurachat.app"
-      }
-    }
-  },
   "firestore": {
     "rules": "firestore.rules",
     "indexes": "firestore.indexes.json"

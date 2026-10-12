@@ -2,6 +2,7 @@ import { useState, useCallback, useEffect } from 'react';
 import { Message, ReplyPreviewInfo, Attachment } from '../types/message';
 import { useAuth } from './useAuth';
 import { messageService } from '../services/messageService';
+import { chatService } from '../services/chatService';
 
 export function useMessages(chatId: string) {
   const { user } = useAuth();
@@ -17,10 +18,31 @@ export function useMessages(chatId: string) {
 
     const unsubscribe = messageService.subscribeToMessages(chatId, (firestoreMessages) => {
       setMessages(firestoreMessages);
+
+      // Auto mark incoming messages as read
+      if (user) {
+        const hasUnread = firestoreMessages.some(
+          (m) => m.senderId !== user.id && m.status !== 'read'
+        );
+        if (hasUnread) {
+          messageService.markMessagesAsRead(chatId, user.id);
+        }
+      }
     });
 
     return () => unsubscribe();
-  }, [chatId]);
+  }, [chatId, user]);
+
+  // Subscribe to counterpart typing status
+  useEffect(() => {
+    if (!chatId || !user) return;
+
+    const unsubTyping = chatService.subscribeToTyping(chatId, user.id, (isTyping) => {
+      setIsCounterpartTyping(isTyping);
+    });
+
+    return () => unsubTyping();
+  }, [chatId, user]);
 
   // Send new message to Firestore
   const sendMessage = useCallback(
@@ -28,6 +50,9 @@ export function useMessages(chatId: string) {
       if (!user) return;
 
       try {
+        // Clear typing status on send
+        chatService.setTypingStatus(chatId, user.id, false);
+
         await messageService.sendMessage({
           chatId,
           senderId: user.id,
@@ -57,10 +82,19 @@ export function useMessages(chatId: string) {
     [chatId, user]
   );
 
+  const setMyTyping = useCallback(
+    (isTyping: boolean) => {
+      if (!user || !chatId) return;
+      chatService.setTypingStatus(chatId, user.id, isTyping);
+    },
+    [chatId, user]
+  );
+
   return {
     messages,
     sendMessage,
     toggleReaction,
     isCounterpartTyping,
+    setMyTyping,
   };
 }

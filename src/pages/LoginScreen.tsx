@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { MessageSquare, AlertCircle } from 'lucide-react';
+import { MessageSquare, AlertCircle, Zap, ShieldCheck } from 'lucide-react';
 import { useTheme } from '../theme/ThemeProvider';
 import { useAuth } from '../hooks/useAuth';
 import { ROUTES } from '../constants/routes';
@@ -8,16 +8,36 @@ import { ROUTES } from '../constants/routes';
 export const LoginScreen: React.FC = () => {
   const { theme } = useTheme();
   const navigate = useNavigate();
-  const { loginWithGoogle, isLoading } = useAuth();
+  const { loginWithGoogle, loginQuickTest, isLoading } = useAuth();
   const [errorMessage, setErrorMessage] = useState('');
+  const [showQuickInput, setShowQuickInput] = useState(false);
+  const [customName, setCustomName] = useState('');
 
   const handleGoogleLogin = async () => {
     setErrorMessage('');
     try {
-      await loginWithGoogle();
-      navigate(ROUTES.HOME);
+      const profile = await loginWithGoogle();
+      if (profile && profile.isProfileComplete === false) {
+        navigate(ROUTES.SETUP_PROFILE, { replace: true });
+      } else if (profile) {
+        navigate(ROUTES.HOME, { replace: true });
+      }
     } catch (err: any) {
       setErrorMessage(err.message || 'Failed to sign in with Google.');
+    }
+  };
+
+  const handleQuickLogin = async () => {
+    setErrorMessage('');
+    try {
+      const profile = await loginQuickTest(customName.trim() || undefined);
+      if (profile && profile.isProfileComplete === false) {
+        navigate(ROUTES.SETUP_PROFILE, { replace: true });
+      } else if (profile) {
+        navigate(ROUTES.HOME, { replace: true });
+      }
+    } catch (err: any) {
+      setErrorMessage(err.message || 'Failed to start session.');
     }
   };
 
@@ -80,7 +100,7 @@ export const LoginScreen: React.FC = () => {
           style={{
             fontSize: 14,
             color: theme.colors.textMuted,
-            margin: '0 0 8px 0',
+            margin: '0 0 6px 0',
             textAlign: 'center',
             lineHeight: 1.5,
           }}
@@ -92,12 +112,12 @@ export const LoginScreen: React.FC = () => {
           style={{
             fontSize: 12.5,
             color: theme.colors.textMuted,
-            margin: '0 0 32px 0',
+            margin: '0 0 28px 0',
             textAlign: 'center',
             opacity: 0.7,
           }}
         >
-          Sign in with your Google account to get started
+          Connect with Google or start an instant chat session
         </p>
 
         {/* Error Alert Box */}
@@ -144,6 +164,7 @@ export const LoginScreen: React.FC = () => {
             cursor: isLoading ? 'not-allowed' : 'pointer',
             transition: 'all 0.15s ease',
             opacity: isLoading ? 0.7 : 1,
+            marginBottom: 14,
           }}
           onMouseEnter={(e) => {
             if (!isLoading) e.currentTarget.style.backgroundColor = theme.colors.surfaceHover;
@@ -161,20 +182,122 @@ export const LoginScreen: React.FC = () => {
           <span>{isLoading ? 'Signing in...' : 'Sign in with Google'}</span>
         </button>
 
+        {/* Divider */}
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            width: '100%',
+            margin: '8px 0 14px 0',
+            gap: 12,
+          }}
+        >
+          <div style={{ flex: 1, height: 1, backgroundColor: theme.colors.border }} />
+          <span style={{ fontSize: 12, color: theme.colors.textMuted }}>or</span>
+          <div style={{ flex: 1, height: 1, backgroundColor: theme.colors.border }} />
+        </div>
+
+        {/* Quick Instant Session / Mobile Direct Sign-in */}
+        {!showQuickInput ? (
+          <button
+            type="button"
+            onClick={() => setShowQuickInput(true)}
+            disabled={isLoading}
+            style={{
+              width: '100%',
+              height: 48,
+              borderRadius: theme.borderRadius.lg,
+              backgroundColor: 'transparent',
+              border: `1px solid ${theme.colors.primary}50`,
+              color: theme.colors.primary,
+              fontSize: 14,
+              fontWeight: 600,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: 8,
+              cursor: 'pointer',
+              transition: 'all 0.15s ease',
+            }}
+          >
+            <Zap size={17} />
+            <span>Instant Test / Mobile Sign In</span>
+          </button>
+        ) : (
+          <div
+            style={{
+              width: '100%',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: 10,
+              padding: 14,
+              backgroundColor: theme.colors.surface,
+              borderRadius: theme.borderRadius.lg,
+              border: `1px solid ${theme.colors.border}`,
+            }}
+          >
+            <input
+              type="text"
+              placeholder="Enter your name (e.g. John)"
+              value={customName}
+              onChange={(e) => setCustomName(e.target.value)}
+              onKeyDown={(e) => e.key === 'Enter' && handleQuickLogin()}
+              style={{
+                width: '100%',
+                height: 42,
+                borderRadius: theme.borderRadius.md,
+                border: `1px solid ${theme.colors.border}`,
+                backgroundColor: theme.colors.surfaceElevated,
+                color: theme.colors.text,
+                padding: '0 12px',
+                fontSize: 14,
+                outline: 'none',
+                boxSizing: 'border-box',
+              }}
+            />
+            <button
+              type="button"
+              onClick={handleQuickLogin}
+              disabled={isLoading}
+              style={{
+                width: '100%',
+                height: 42,
+                borderRadius: theme.borderRadius.md,
+                background: theme.colors.primaryGradient,
+                color: '#FFFFFF',
+                border: 'none',
+                fontWeight: 600,
+                fontSize: 14,
+                cursor: isLoading ? 'not-allowed' : 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: 6,
+              }}
+            >
+              <Zap size={16} />
+              <span>{isLoading ? 'Creating Session...' : 'Continue to AuraChat'}</span>
+            </button>
+          </div>
+        )}
+
         {/* Footer info */}
         <p
           style={{
-            marginTop: 32,
+            marginTop: 28,
             fontSize: 11.5,
             color: theme.colors.textMuted,
             textAlign: 'center',
-            opacity: 0.6,
+            opacity: 0.7,
             lineHeight: 1.5,
+            display: 'flex',
+            alignItems: 'center',
+            gap: 6,
+            justifyContent: 'center',
           }}
         >
-          By signing in, you agree to AuraChat's Terms of Service.
-          <br />
-          Your messages are end-to-end encrypted.
+          <ShieldCheck size={14} color={theme.colors.primary} />
+          <span>End-to-end encrypted • Zero static data</span>
         </p>
       </div>
     </div>

@@ -8,6 +8,7 @@ export const ROUTES = {
   PROFILE: '/profile',
   SETTINGS: '/settings',
   LOGIN: '/login',
+  SETUP_PROFILE: '/setup-profile',
 };
 
 export const getChatRoute = (chatId: string) => `/chat/${chatId}`;

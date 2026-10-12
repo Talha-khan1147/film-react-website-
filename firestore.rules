@@ -3,7 +3,9 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
     
-    // Helper functions
+    // ==========================================
+    // HELPER FUNCTIONS
+    // ==========================================
     function isAuthenticated() {
       return request.auth != null;
     }
@@ -12,35 +14,62 @@ service cloud.firestore {
       return isAuthenticated() && request.auth.uid == userId;
     }
 
-    // User Profiles
+    // ==========================================
+    // USER PROFILES
+    // ==========================================
     match /users/{userId} {
-      // Any authenticated user can read profiles
+      // Tamam logged-in users profiles search & view kar sakte hain
       allow read: if isAuthenticated();
-      // Only the user themselves can create or update their own profile
+      
+      // Har user sirf apna profile create ya update kar sakta hai
       allow create, update: if isOwner(userId);
+      
+      // Profiles delete karna allow nahi hai
       allow delete: if false;
     }
 
-    // Chats and Conversations
+    // ==========================================
+    // CHATS & CONVERSATIONS
+    // ==========================================
     match /chats/{chatId} {
-      // Authenticated users who are participants can read/write
+      // Authenticated users chats read, create aur update kar sakte hain
       allow read: if isAuthenticated();
       allow create, update: if isAuthenticated();
       allow delete: if isAuthenticated();
 
       // Nested Messages in a Chat
       match /messages/{messageId} {
+        // Chat ke messages read karne ki ijazat
         allow read: if isAuthenticated();
+        
+        // Naya message sirf wahi bhej sakta hai jo senderId ho
         allow create: if isAuthenticated() && request.resource.data.senderId == request.auth.uid;
-        allow update, delete: if isAuthenticated();
+        
+        // UPDATE (Read receipts "✓✓", Delivered status, aur Emoji reactions):
+        // Receiver ko status 'read' karne aur reaction dene ke liye update ki ijazat honi zaroori hai
+        allow update: if isAuthenticated();
+        
+        // DELETE: Sirf message bhejne wala apna message delete kar sakta hai
+        allow delete: if isAuthenticated() && resource.data.senderId == request.auth.uid;
       }
     }
 
-    // Stories
+    // ==========================================
+    // WHATSAPP STORIES / STATUS
+    // ==========================================
     match /stories/{storyId} {
+      // Tamam logged-in users stories/status dekh sakte hain
       allow read: if isAuthenticated();
+      
+      // Har user apni story create kar sakta hai
       allow create: if isAuthenticated();
-      allow update, delete: if isAuthenticated() && resource.data.userId == request.auth.uid;
+      
+      // UPDATE: Story owner apni slides add/edit kar sake, 
+      // AUR doosre viewers apna 'viewed' status record kar sakein
+      allow update: if isAuthenticated();
+      
+      // DELETE: Sirf wahi user story delete kar sake jiski wo story hai
+      allow delete: if isAuthenticated() && resource.data.userId == request.auth.uid;
     }
   }
 }

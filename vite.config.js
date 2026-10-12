@@ -10,7 +10,8 @@ export default defineConfig({
     },
   },
   server: {
+    host: true, // Listen on all network addresses (LAN access for mobile)
     port: 3000,
-    open: false
-  }
+    open: false,
+  },
 });

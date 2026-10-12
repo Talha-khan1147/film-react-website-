@@ -146,7 +146,7 @@ export const ProfileScreen: React.FC = () => {
           <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13 }}>
             <span style={{ color: theme.colors.textMuted }}>Encryption Key</span>
             <span style={{ color: theme.colors.primary, fontFamily: 'monospace', fontSize: 12 }}>
-              AURA-4892-SEC
+              {`AURA-${(profile.id || 'SEC').slice(0, 6).toUpperCase()}-SEC`}
             </span>
           </div>
         </div>

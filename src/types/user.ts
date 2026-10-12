@@ -12,6 +12,7 @@ export interface User {
   phoneNumber?: string;
   email?: string;
   isVerified?: boolean;
+  isProfileComplete?: boolean;
 }
 
 export interface CurrentUserProfile extends User {

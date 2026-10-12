@@ -1,9 +1,8 @@
-import React, { useState } from 'react';
-import { Plus, Sparkles, Clock, CheckCheck } from 'lucide-react';
+import React from 'react';
+import { Plus, Sparkles, CheckCheck } from 'lucide-react';
 import { useTheme } from '../theme/ThemeProvider';
 import { useStories } from '../hooks/useStories';
 import { useAuth } from '../hooks/useAuth';
-import { currentUser as fallbackUser } from '../data/users';
 import { AppHeader } from '../components/common/AppHeader';
 import { ScreenContainer } from '../components/common/ScreenContainer';
 import { PrimaryButton } from '../components/common/PrimaryButton';
@@ -11,6 +10,7 @@ import { StoryCard } from '../components/stories/StoryCard';
 import { StoryViewer } from '../components/stories/StoryViewer';
 import { StoryCreatorModal } from '../components/stories/StoryCreatorModal';
 import { Avatar } from '../components/common/Avatar';
+import { EmptyState } from '../components/common/EmptyState';
 
 export const StoriesScreen: React.FC = () => {
   const { theme } = useTheme();
@@ -25,10 +25,13 @@ export const StoriesScreen: React.FC = () => {
   } = useStories();
 
   const { user } = useAuth();
-  const activeUser = user || fallbackUser;
 
-  const userStory = stories.find((s) => s.userId === activeUser.id);
-  const otherStories = stories.filter((s) => s.userId !== activeUser.id);
+  if (!user) {
+    return null;
+  }
+
+  const userStory = stories.find((s) => s.userId === user.id);
+  const otherStories = stories.filter((s) => s.userId !== user.id);
 
   const recentUnseenStories = otherStories.filter((s) => s.hasUnseen);
   const viewedStories = otherStories.filter((s) => !s.hasUnseen);
@@ -36,11 +39,11 @@ export const StoriesScreen: React.FC = () => {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100%', width: '100%' }}>
       <AppHeader
-        title="Stories & Status"
-        subtitle="Moments that disappear in 24 hours"
+        title="Status"
+        subtitle="Updates disappear after 24 hours"
         rightActions={
           <PrimaryButton
-            label="Add Story"
+            label="Add Status"
             icon={<Plus size={16} />}
             onClick={() => setIsCreatorOpen(true)}
             size="sm"
@@ -49,7 +52,7 @@ export const StoriesScreen: React.FC = () => {
       />
 
       <ScreenContainer scrollable style={{ padding: '16px 16px 80px 16px' }}>
-        {/* My Story Card Banner */}
+        {/* My Status Card Banner */}
         <div
           style={{
             display: 'flex',
@@ -65,8 +68,8 @@ export const StoriesScreen: React.FC = () => {
         >
           <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
             <Avatar
-              src={activeUser.avatar}
-              name={activeUser.name}
+              src={user.avatar}
+              name={user.name}
               size="lg"
               hasStory={!!userStory}
               hasUnseenStory={false}
@@ -81,12 +84,12 @@ export const StoriesScreen: React.FC = () => {
             />
             <div>
               <div style={{ fontSize: 15, fontWeight: 600, color: theme.colors.text }}>
-                My Story
+                My Status
               </div>
               <div style={{ fontSize: 12.5, color: theme.colors.textMuted, marginTop: 2 }}>
                 {userStory
-                  ? `${userStory.slides.length} active updates`
-                  : 'Tap to share a photo or update'}
+                  ? `${userStory.slides.length} active ${userStory.slides.length === 1 ? 'update' : 'updates'}`
+                  : 'Tap to share a photo, video or text'}
               </div>
             </div>
           </div>
@@ -94,6 +97,7 @@ export const StoriesScreen: React.FC = () => {
           <button
             type="button"
             onClick={() => setIsCreatorOpen(true)}
+            aria-label="Add new status"
             style={{
               width: 36,
               height: 36,
@@ -191,6 +195,17 @@ export const StoriesScreen: React.FC = () => {
               })}
             </div>
           </div>
+        )}
+
+        {/* Empty state when no contact stories exist */}
+        {otherStories.length === 0 && !userStory && (
+          <EmptyState
+            icon={<Sparkles size={36} />}
+            title="No status updates yet"
+            description="Share moments with your contacts! Photos, videos, and thoughts disappear after 24 hours."
+            actionLabel="Post a Status"
+            onAction={() => setIsCreatorOpen(true)}
+          />
         )}
       </ScreenContainer>
 

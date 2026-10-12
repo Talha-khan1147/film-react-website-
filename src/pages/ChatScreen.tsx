@@ -6,6 +6,7 @@ import { useAuth } from '../hooks/useAuth';
 import { useMessages } from '../hooks/useMessages';
 import { useChatInput } from '../hooks/useChatInput';
 import { chatService } from '../services/chatService';
+import { messageService } from '../services/messageService';
 import { Chat } from '../types/chat';
 import { User } from '../types/user';
 import { AppHeader } from '../components/common/AppHeader';
@@ -16,7 +17,6 @@ import { MessageInput } from '../components/chat/MessageInput';
 import { TypingIndicator } from '../components/chat/TypingIndicator';
 import { DateSeparator } from '../components/chat/DateSeparator';
 import { AttachmentModal } from '../components/chat/AttachmentModal';
-import { ReplyPreviewInfo, Attachment } from '../types/message';
 import { LoadingState } from '../components/common/LoadingState';
 
 export const ChatScreen: React.FC = () => {
@@ -29,7 +29,7 @@ export const ChatScreen: React.FC = () => {
   const [chat, setChat] = useState<Chat | null>(null);
   const [isLoadingChat, setIsLoadingChat] = useState(true);
 
-  // Fetch chat from Firestore
+  // Fetch chat from Firestore and mark incoming as read
   useEffect(() => {
     if (!chatId) {
       setIsLoadingChat(false);
@@ -39,16 +39,23 @@ export const ChatScreen: React.FC = () => {
     chatService.getChatById(chatId).then((c) => {
       setChat(c);
       setIsLoadingChat(false);
+      chatService.markChatRead(chatId).catch(() => {});
+      if (user?.id) {
+        messageService.markMessagesAsRead(chatId, user.id).catch(() => {});
+      }
     }).catch(() => {
       setIsLoadingChat(false);
     });
-  }, [chatId]);
+  }, [chatId, user?.id]);
 
-  const { messages, sendMessage, toggleReaction, isCounterpartTyping } = useMessages(chatId);
+  const { messages, sendMessage, toggleReaction, isCounterpartTyping, setMyTyping } =
+    useMessages(chatId);
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const [showSearchInsideChat, setShowSearchInsideChat] = useState(false);
   const [searchWord, setSearchWord] = useState('');
+
+  const typingTimeoutRef = useRef<any>(null);
 
   const {
     text,
@@ -67,7 +74,21 @@ export const ChatScreen: React.FC = () => {
     addEmoji,
   } = useChatInput((msgText, reply, atts) => {
     sendMessage(msgText, reply, atts);
+    setMyTyping(false);
   });
+
+  const handleTextChange = (val: string) => {
+    setText(val);
+    if (val.trim().length > 0) {
+      setMyTyping(true);
+      if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
+      typingTimeoutRef.current = setTimeout(() => {
+        setMyTyping(false);
+      }, 3000);
+    } else {
+      setMyTyping(false);
+    }
+  };
 
   // Auto scroll to bottom on new messages
   useEffect(() => {
@@ -86,7 +107,8 @@ export const ChatScreen: React.FC = () => {
     );
   }
 
-  const counterpart: User = chat.participants.find((p) => p.id !== user.id) || chat.participants[0];
+  const counterpart: User =
+    chat.participants.find((p) => p.id !== user.id) || chat.participants[0];
 
   // Group messages by date
   let lastDateKey = '';
@@ -237,6 +259,27 @@ export const ChatScreen: React.FC = () => {
           <span>Messages and calls are end-to-end encrypted.</span>
         </div>
 
+        {/* Empty state when no messages exist yet */}
+        {filteredMessages.length === 0 && (
+          <div
+            style={{
+              margin: 'auto',
+              textAlign: 'center',
+              padding: '24px 16px',
+              maxWidth: 280,
+              color: theme.colors.textMuted,
+            }}
+          >
+            <div style={{ fontSize: 28, marginBottom: 8 }}>👋</div>
+            <div style={{ fontSize: 14, fontWeight: 600, color: theme.colors.text }}>
+              Say hello to {counterpart.name}!
+            </div>
+            <div style={{ fontSize: 12, marginTop: 4, lineHeight: 1.4 }}>
+              Send a text, photo, voice note, or document to start chatting.
+            </div>
+          </div>
+        )}
+
         {/* Message Items with Date Separators */}
         {filteredMessages.map((message) => {
           const showDateSep = message.dateKey !== lastDateKey;
@@ -270,7 +313,7 @@ export const ChatScreen: React.FC = () => {
       {/* Message Composer Input */}
       <MessageInput
         value={text}
-        onChange={setText}
+        onChange={handleTextChange}
         onSend={handleSend}
         replyTo={replyTo}
         onCancelReply={cancelReply}

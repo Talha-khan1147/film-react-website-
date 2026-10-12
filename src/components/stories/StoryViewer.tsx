@@ -1,8 +1,9 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { X, Heart, Send } from 'lucide-react';
+import { X, Heart, Send, Eye, Users } from 'lucide-react';
 import { Story } from '../../types/story';
 import { Avatar } from '../common/Avatar';
 import { getRelativeTime } from '../../utils/dateUtils';
+import { useAuth } from '../../hooks/useAuth';
 
 interface StoryViewerProps {
   stories: Story[];
@@ -19,20 +20,22 @@ export const StoryViewer: React.FC<StoryViewerProps> = ({
   onMarkSlideViewed,
   onSendStoryReply,
 }) => {
+  const { user } = useAuth();
   const [currentStoryIdx, setCurrentStoryIdx] = useState(initialStoryIndex);
   const [currentSlideIdx, setCurrentSlideIdx] = useState(0);
   const [progress, setProgress] = useState(0); // 0 to 100
   const [isPaused, setIsPaused] = useState(false);
   const [replyText, setReplyText] = useState('');
   const [showHeartAnimation, setShowHeartAnimation] = useState(false);
+  const [showViewersSheet, setShowViewersSheet] = useState(false);
 
   const currentStory = stories[currentStoryIdx];
   const currentSlide = currentStory?.slides[currentSlideIdx];
 
   const durationMs = currentSlide?.durationMs || 5000;
-  const timerRef = useRef<number | null>(null);
   const startTimeRef = useRef<number>(Date.now());
   const elapsedRef = useRef<number>(0);
+  const isOwner = user?.id === currentStory?.userId;
 
   // Mark current slide as viewed
   useEffect(() => {
@@ -75,7 +78,7 @@ export const StoryViewer: React.FC<StoryViewerProps> = ({
 
   // Progress animation loop
   useEffect(() => {
-    if (isPaused || !currentSlide) return;
+    if (isPaused || showViewersSheet || !currentSlide) return;
 
     startTimeRef.current = Date.now() - elapsedRef.current;
 
@@ -92,7 +95,7 @@ export const StoryViewer: React.FC<StoryViewerProps> = ({
     }, 40);
 
     return () => clearInterval(interval);
-  }, [currentSlide, durationMs, isPaused, goToNext]);
+  }, [currentSlide, durationMs, isPaused, showViewersSheet, goToNext]);
 
   // Keyboard navigation
   useEffect(() => {
@@ -138,10 +141,10 @@ export const StoryViewer: React.FC<StoryViewerProps> = ({
         justifyContent: 'center',
         userSelect: 'none',
       }}
-      onMouseDown={() => setIsPaused(true)}
-      onMouseUp={() => setIsPaused(false)}
-      onTouchStart={() => setIsPaused(true)}
-      onTouchEnd={() => setIsPaused(false)}
+      onMouseDown={() => !showViewersSheet && setIsPaused(true)}
+      onMouseUp={() => !showViewersSheet && setIsPaused(false)}
+      onTouchStart={() => !showViewersSheet && setIsPaused(true)}
+      onTouchEnd={() => !showViewersSheet && setIsPaused(false)}
     >
       {/* Story Stage Container */}
       <div
@@ -158,11 +161,29 @@ export const StoryViewer: React.FC<StoryViewerProps> = ({
           overflow: 'hidden',
         }}
       >
-        {/* Media Background */}
+        {/* Media Background (Image) */}
         {currentSlide.mediaType === 'image' && currentSlide.mediaUrl && (
           <img
             src={currentSlide.mediaUrl}
             alt="Story content"
+            style={{
+              position: 'absolute',
+              inset: 0,
+              width: '100%',
+              height: '100%',
+              objectFit: 'cover',
+            }}
+          />
+        )}
+
+        {/* Media Background (Video) */}
+        {currentSlide.mediaType === 'video' && currentSlide.mediaUrl && (
+          <video
+            src={currentSlide.mediaUrl}
+            autoPlay
+            loop
+            muted
+            playsInline
             style={{
               position: 'absolute',
               inset: 0,
@@ -183,7 +204,9 @@ export const StoryViewer: React.FC<StoryViewerProps> = ({
               alignItems: 'center',
               justifyContent: 'center',
               padding: 32,
-              background: currentSlide.backgroundColor || 'linear-gradient(135deg, #6366F1, #EC4899)',
+              background:
+                currentSlide.backgroundColor ||
+                'linear-gradient(135deg, #6366F1, #EC4899)',
               color: '#FFFFFF',
               fontSize: 22,
               fontWeight: 600,
@@ -264,7 +287,7 @@ export const StoryViewer: React.FC<StoryViewerProps> = ({
             <Avatar src={currentStory.user.avatar} name={currentStory.user.name} size="sm" />
             <div>
               <div style={{ fontSize: 13.5, fontWeight: 600, color: '#FFFFFF' }}>
-                {currentStory.user.name}
+                {isOwner ? 'My Status' : currentStory.user.name}
               </div>
               <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.75)' }}>
                 {getRelativeTime(currentSlide.createdAt)}
@@ -330,7 +353,6 @@ export const StoryViewer: React.FC<StoryViewerProps> = ({
               left: '50%',
               transform: 'translate(-50%, -50%)',
               zIndex: 30,
-              animation: 'heartPop 1s ease-out forwards',
               fontSize: 64,
             }}
           >
@@ -338,7 +360,7 @@ export const StoryViewer: React.FC<StoryViewerProps> = ({
           </div>
         )}
 
-        {/* Bottom Area: Caption & Story Reply Composer */}
+        {/* Bottom Area */}
         <div
           style={{
             position: 'relative',
@@ -352,7 +374,7 @@ export const StoryViewer: React.FC<StoryViewerProps> = ({
           onClick={(e) => e.stopPropagation()}
         >
           {/* Caption */}
-          {currentSlide.mediaType === 'image' && currentSlide.caption && (
+          {currentSlide.caption && currentSlide.mediaType !== 'text-card' && (
             <p
               style={{
                 fontSize: 14,
@@ -366,76 +388,199 @@ export const StoryViewer: React.FC<StoryViewerProps> = ({
             </p>
           )}
 
-          {/* Quick Reaction Emojis */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-            {['❤️', '🔥', '😂', '👏', '😮'].map((emoji) => (
+          {/* Owner view: WhatsApp Style Viewers Button */}
+          {isOwner ? (
+            <div style={{ display: 'flex', justifyContent: 'center' }}>
               <button
-                key={emoji}
                 type="button"
-                onClick={() => handleSendQuickReaction(emoji)}
+                onClick={() => {
+                  setShowViewersSheet(true);
+                  setIsPaused(true);
+                }}
                 style={{
-                  background: 'rgba(255,255,255,0.18)',
-                  border: 'none',
-                  borderRadius: '50%',
-                  width: 36,
-                  height: 36,
-                  fontSize: 18,
-                  cursor: 'pointer',
                   display: 'flex',
                   alignItems: 'center',
-                  justifyContent: 'center',
-                  backdropFilter: 'blur(5px)',
+                  gap: 8,
+                  padding: '8px 16px',
+                  backgroundColor: 'rgba(255, 255, 255, 0.2)',
+                  backdropFilter: 'blur(10px)',
+                  border: '1px solid rgba(255, 255, 255, 0.3)',
+                  borderRadius: 20,
+                  color: '#FFFFFF',
+                  fontSize: 13,
+                  fontWeight: 600,
+                  cursor: 'pointer',
                 }}
               >
-                {emoji}
+                <Eye size={16} />
+                <span>{currentSlide.viewers?.length || 0} views</span>
               </button>
-            ))}
-          </div>
+            </div>
+          ) : (
+            <>
+              {/* Quick Reaction Emojis */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                {['❤️', '🔥', '😂', '👏', '😮'].map((emoji) => (
+                  <button
+                    key={emoji}
+                    type="button"
+                    onClick={() => handleSendQuickReaction(emoji)}
+                    style={{
+                      background: 'rgba(255,255,255,0.18)',
+                      border: 'none',
+                      borderRadius: '50%',
+                      width: 36,
+                      height: 36,
+                      fontSize: 18,
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      backdropFilter: 'blur(5px)',
+                    }}
+                  >
+                    {emoji}
+                  </button>
+                ))}
+              </div>
 
-          {/* Reply input row */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            <input
-              type="text"
-              value={replyText}
-              onChange={(e) => setReplyText(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter') handleSendReply();
-              }}
-              placeholder={`Reply to ${currentStory.user.name.split(' ')[0]}...`}
-              style={{
-                flex: 1,
-                backgroundColor: 'rgba(255,255,255,0.2)',
-                border: '1px solid rgba(255,255,255,0.3)',
-                borderRadius: 20,
-                padding: '8px 14px',
-                color: '#FFFFFF',
-                fontSize: 13.5,
-                outline: 'none',
-                backdropFilter: 'blur(5px)',
-              }}
-            />
+              {/* Reply input row */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <input
+                  type="text"
+                  value={replyText}
+                  onChange={(e) => setReplyText(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') handleSendReply();
+                  }}
+                  placeholder={`Reply to ${currentStory.user.name.split(' ')[0]}...`}
+                  style={{
+                    flex: 1,
+                    backgroundColor: 'rgba(255,255,255,0.2)',
+                    border: '1px solid rgba(255,255,255,0.3)',
+                    borderRadius: 20,
+                    padding: '8px 14px',
+                    color: '#FFFFFF',
+                    fontSize: 13.5,
+                    outline: 'none',
+                    backdropFilter: 'blur(5px)',
+                  }}
+                />
 
-            <button
-              type="button"
-              onClick={handleSendReply}
-              aria-label="Send reply"
+                <button
+                  type="button"
+                  onClick={handleSendReply}
+                  aria-label="Send reply"
+                  style={{
+                    width: 36,
+                    height: 36,
+                    borderRadius: '50%',
+                    background: '#6366F1',
+                    border: 'none',
+                    color: '#FFFFFF',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    cursor: 'pointer',
+                  }}
+                >
+                  <Send size={15} />
+                </button>
+              </div>
+            </>
+          )}
+        </div>
+
+        {/* WhatsApp Viewers Sheet for Status Owner */}
+        {showViewersSheet && (
+          <div
+            onClick={() => {
+              setShowViewersSheet(false);
+              setIsPaused(false);
+            }}
+            style={{
+              position: 'absolute',
+              inset: 0,
+              backgroundColor: 'rgba(0,0,0,0.6)',
+              zIndex: 50,
+              display: 'flex',
+              flexDirection: 'column',
+              justifyContent: 'flex-end',
+            }}
+          >
+            <div
+              onClick={(e) => e.stopPropagation()}
               style={{
-                width: 36,
-                height: 36,
-                borderRadius: '50%',
-                background: '#6366F1',
-                border: 'none',
-                color: '#FFFFFF',
+                backgroundColor: '#1E293B',
+                borderTopLeftRadius: 20,
+                borderTopRightRadius: 20,
+                padding: '20px 16px',
+                maxHeight: '60%',
+                overflowY: 'auto',
                 display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                cursor: 'pointer',
+                flexDirection: 'column',
+                gap: 12,
               }}
             >
-              <Send size={15} />
-            </button>
+              <div
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  borderBottom: '1px solid rgba(255,255,255,0.1)',
+                  paddingBottom: 10,
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, color: '#FFFFFF' }}>
+                  <Users size={18} />
+                  <span style={{ fontSize: 15, fontWeight: 600 }}>
+                    Viewed by ({currentSlide.viewers?.length || 0})
+                  </span>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowViewersSheet(false);
+                    setIsPaused(false);
+                  }}
+                  style={{
+                    background: 'transparent',
+                    border: 'none',
+                    color: '#94A3B8',
+                    cursor: 'pointer',
+                  }}
+                >
+                  <X size={18} />
+                </button>
+              </div>
+
+              {currentSlide.viewers && currentSlide.viewers.length > 0 ? (
+                currentSlide.viewers.map((viewer) => (
+                  <div
+                    key={viewer.userId}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      padding: '8px 0',
+                    }}
+                  >
+                    <div style={{ color: '#FFFFFF', fontSize: 14, fontWeight: 500 }}>
+                      {viewer.userName}
+                    </div>
+                    <div style={{ color: '#94A3B8', fontSize: 12 }}>
+                      {getRelativeTime(viewer.viewedAt)}
+                    </div>
+                  </div>
+                ))
+              ) : (
+                <div style={{ color: '#94A3B8', fontSize: 13, textAlign: 'center', padding: '20px 0' }}>
+                  No one has viewed this status yet.
+                </div>
+              )}
+            </div>
           </div>
-        </div>
+        )}
       </div>
     </div>
   );

@@ -6,15 +6,17 @@ import {
   onSnapshot,
   query,
   orderBy,
+  where,
+  getDocs,
   Unsubscribe,
-  arrayUnion,
-  arrayRemove,
   getDoc,
+  writeBatch,
 } from 'firebase/firestore';
 import { db } from './firebase';
 import { Message, ReplyPreviewInfo, Attachment, Reaction } from '../types/message';
 import { generateId } from '../utils/formatters';
 import { chatService } from './chatService';
+import { saveChatLogToDrive } from './driveStorageService';
 
 const CHATS_COLLECTION = 'chats';
 const MESSAGES_SUBCOLLECTION = 'messages';
@@ -32,15 +34,19 @@ export const messageService = {
       orderBy('timestamp', 'asc')
     );
 
-    return onSnapshot(q, (snapshot) => {
-      const messages: Message[] = snapshot.docs.map((docSnap) => ({
-        ...(docSnap.data() as Message),
-        id: docSnap.id,
-      }));
-      callback(messages);
-    }, (error) => {
-      console.error('Error subscribing to messages:', error);
-    });
+    return onSnapshot(
+      q,
+      (snapshot) => {
+        const messages: Message[] = snapshot.docs.map((docSnap) => ({
+          ...(docSnap.data() as Message),
+          id: docSnap.id,
+        }));
+        callback(messages);
+      },
+      (error) => {
+        console.error('Error subscribing to messages:', error);
+      }
+    );
   },
 
   /**
@@ -62,7 +68,10 @@ export const messageService = {
       chatId: params.chatId,
       senderId: params.senderId,
       text: params.text || '',
-      type: params.attachments && params.attachments.length > 0 ? params.attachments[0].type : 'text',
+      type:
+        params.attachments && params.attachments.length > 0
+          ? params.attachments[0].type
+          : 'text',
       status: 'sent',
       timestamp: now.toISOString(),
       dateKey: now.toISOString().split('T')[0],
@@ -94,6 +103,74 @@ export const messageService = {
       dateKey: newMessage.dateKey,
       reactions: [],
     });
+
+    // Auto-backup message to Google Drive chat log in background
+    saveChatLogToDrive(
+      params.chatId,
+      {
+        lastMessageId: messageId,
+        senderId: params.senderId,
+        senderName: params.senderName,
+        text: params.text,
+        type: newMessage.type,
+        timestamp: now.toISOString(),
+        attachments: params.attachments || [],
+      },
+      params.senderId,
+      params.senderName
+    ).catch(() => {});
+  },
+
+  /**
+   * Mark all unread incoming messages as read by current user
+   */
+  async markMessagesAsRead(chatId: string, currentUserId: string): Promise<void> {
+    try {
+      const messagesRef = collection(db, CHATS_COLLECTION, chatId, MESSAGES_SUBCOLLECTION);
+      const q = query(messagesRef, where('status', 'in', ['sent', 'delivered']));
+      const snapshot = await getDocs(q);
+
+      const toUpdate = snapshot.docs.filter((d) => {
+        const data = d.data();
+        return data.senderId !== currentUserId;
+      });
+
+      if (toUpdate.length === 0) return;
+
+      const batch = writeBatch(db);
+      toUpdate.forEach((d) => {
+        batch.update(d.ref, { status: 'read' });
+      });
+      await batch.commit();
+    } catch (err) {
+      console.warn('Error marking messages as read:', err);
+    }
+  },
+
+  /**
+   * Mark messages as delivered when receiver is active
+   */
+  async markMessagesAsDelivered(chatId: string, currentUserId: string): Promise<void> {
+    try {
+      const messagesRef = collection(db, CHATS_COLLECTION, chatId, MESSAGES_SUBCOLLECTION);
+      const q = query(messagesRef, where('status', '==', 'sent'));
+      const snapshot = await getDocs(q);
+
+      const toUpdate = snapshot.docs.filter((d) => {
+        const data = d.data();
+        return data.senderId !== currentUserId;
+      });
+
+      if (toUpdate.length === 0) return;
+
+      const batch = writeBatch(db);
+      toUpdate.forEach((d) => {
+        batch.update(d.ref, { status: 'delivered' });
+      });
+      await batch.commit();
+    } catch (err) {
+      console.warn('Error marking messages as delivered:', err);
+    }
   },
 
   /**

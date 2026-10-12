@@ -1,7 +1,7 @@
 /**
  * Safe wrapper around LocalStorage with error handling and fallback support.
  */
-const STORAGE_PREFIX = 'freeflix_';
+const STORAGE_PREFIX = 'aurachat_';
 
 export const storage = {
   get(key, defaultValue = null) {

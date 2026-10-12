@@ -55,7 +55,8 @@ export const AppLayout: React.FC<AppLayoutProps> = ({ children }) => {
   return (
     <div
       style={{
-        minHeight: '100vh',
+        minHeight: '100dvh',
+        height: '100dvh',
         width: '100%',
         backgroundColor: isMobileScreen
           ? theme.colors.background
@@ -144,7 +145,7 @@ export const AppLayout: React.FC<AppLayoutProps> = ({ children }) => {
         style={{
           width: '100%',
           maxWidth: showChassis ? 430 : isMobileScreen ? '100%' : 760,
-          height: showChassis ? '94vh' : '100vh',
+          height: showChassis ? '94vh' : '100dvh',
           maxHeight: showChassis ? 890 : 'none',
           backgroundColor: theme.colors.background,
           borderRadius: showChassis ? 40 : 0,

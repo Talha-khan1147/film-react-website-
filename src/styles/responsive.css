@@ -1,87 +1,40 @@
-/* Responsive Grid and Breakpoint Rules */
+/* AuraChat Responsive & Mobile Optimization */
 
-/* Responsive Movie Grid:
-   Desktop: 5 or 6 cards per row
-   Tablet: 3 or 4 cards per row
-   Mobile: 2 cards per row
-*/
-
-.movie-grid {
-  display: grid;
-  gap: 1.25rem;
-  width: 100%;
+:root {
+  --app-height: 100%;
 }
 
-/* Extra large screens (1400px+) -> 6 cards */
-@media (min-width: 1400px) {
-  .movie-grid {
-    grid-template-columns: repeat(6, 1fr);
-  }
+html, body {
+  height: 100%;
+  height: 100dvh;
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
+  -webkit-tap-highlight-color: transparent;
+  user-select: none;
+  -webkit-user-select: none;
 }
 
-/* Desktop screens (1100px - 1399px) -> 5 cards */
-@media (min-width: 1100px) and (max-width: 1399px) {
-  .movie-grid {
-    grid-template-columns: repeat(5, 1fr);
-  }
+/* Allow text selection inside chat bubbles and message inputs */
+input, textarea, [contenteditable="true"], .selectable-text {
+  user-select: text !important;
+  -webkit-user-select: text !important;
 }
 
-/* Tablet landscape (850px - 1099px) -> 4 cards */
-@media (min-width: 850px) and (max-width: 1099px) {
-  .movie-grid {
-    grid-template-columns: repeat(4, 1fr);
-    gap: 1rem;
+/* Safe area support for modern iOS & Android notches */
+@supports (padding: env(safe-area-inset-top)) {
+  body {
+    padding-top: env(safe-area-inset-top);
+    padding-bottom: env(safe-area-inset-bottom);
+    padding-left: env(safe-area-inset-left);
+    padding-right: env(safe-area-inset-right);
   }
 }
 
-/* Tablet portrait (600px - 849px) -> 3 cards */
-@media (min-width: 600px) and (max-width: 849px) {
-  .movie-grid {
-    grid-template-columns: repeat(3, 1fr);
-    gap: 0.875rem;
-  }
-}
-
-/* Mobile (< 600px) -> strictly 2 cards */
-@media (max-width: 599px) {
-  .movie-grid {
-    grid-template-columns: repeat(2, 1fr);
-    gap: 0.75rem;
-  }
-}
-
-/* Responsive Nav Layout */
-@media (max-width: 768px) {
-  .nav-desktop-links {
-    display: none !important;
-  }
-  
-  .nav-mobile-toggle {
-    display: flex !important;
-  }
-  
-  .hero-title {
-    font-size: 2rem !important;
-  }
-
-  .movie-details-header {
-    flex-direction: column !important;
-    align-items: center !important;
-    text-align: center !important;
-  }
-
-  .movie-details-poster-wrap {
-    width: 220px !important;
-    margin: 0 auto 1.5rem auto !important;
-  }
-}
-
-@media (min-width: 769px) {
-  .nav-mobile-drawer {
-    display: none !important;
-  }
-  
-  .nav-mobile-toggle {
-    display: none !important;
+/* Mobile full width adjustments */
+@media (max-width: 640px) {
+  #root {
+    width: 100vw !important;
+    height: 100dvh !important;
   }
 }

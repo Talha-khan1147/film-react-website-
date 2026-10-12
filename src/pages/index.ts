@@ -7,3 +7,4 @@ export { NotificationsScreen } from './NotificationsScreen';
 export { SettingsScreen } from './SettingsScreen';
 export { NotFoundScreen } from './NotFoundScreen';
 export { LoginScreen } from './LoginScreen';
+export { SetupProfileScreen } from './SetupProfileScreen';

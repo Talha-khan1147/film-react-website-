@@ -1,5 +1,11 @@
 import { User } from './user';
 
+export interface StoryViewerInfo {
+  userId: string;
+  userName: string;
+  viewedAt: string;
+}
+
 export interface StorySlide {
   id: string;
   mediaUrl: string;
@@ -9,6 +15,7 @@ export interface StorySlide {
   createdAt: string;
   durationMs: number; // default 5000ms
   isViewed: boolean;
+  viewers?: StoryViewerInfo[];
 }
 
 export interface Story {

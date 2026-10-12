@@ -143,4 +143,36 @@ export const chatService = {
       updatedAt: new Date().toISOString(),
     });
   },
+
+  /**
+   * Real-time typing status
+   */
+  async setTypingStatus(chatId: string, userId: string, isTyping: boolean): Promise<void> {
+    try {
+      const chatRef = doc(db, CHATS_COLLECTION, chatId);
+      await updateDoc(chatRef, {
+        [`typing.${userId}`]: isTyping ? Date.now() : 0,
+      });
+    } catch (e) {
+      // ignore
+    }
+  },
+
+  subscribeToTyping(
+    chatId: string,
+    currentUserId: string,
+    callback: (isTyping: boolean) => void
+  ): Unsubscribe {
+    const chatRef = doc(db, CHATS_COLLECTION, chatId);
+    return onSnapshot(chatRef, (snapshot) => {
+      if (!snapshot.exists()) return;
+      const data = snapshot.data();
+      const typingMap = data?.typing || {};
+      const now = Date.now();
+      const isOtherTyping = Object.entries(typingMap).some(([uid, time]) => {
+        return uid !== currentUserId && typeof time === 'number' && now - time < 3500;
+      });
+      callback(isOtherTyping);
+    });
+  },
 };

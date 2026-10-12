@@ -1,17 +1,29 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { UserStatus } from '../types/user';
-import { currentUser } from '../data/users';
+import { useAuth } from './useAuth';
 
 export function useUserStatus() {
-  const [status, setStatus] = useState<UserStatus>(currentUser.status);
-  const [statusMessage, setStatusMessage] = useState<string>(currentUser.statusMessage || '');
+  const { user, updateUser } = useAuth();
+  const [status, setStatus] = useState<UserStatus>(user?.status || 'online');
+  const [statusMessage, setStatusMessage] = useState<string>(user?.statusMessage || '');
+
+  useEffect(() => {
+    if (user) {
+      if (user.status) setStatus(user.status);
+      if (user.statusMessage) setStatusMessage(user.statusMessage);
+    }
+  }, [user]);
 
   const updateStatus = useCallback((newStatus: UserStatus, message?: string) => {
     setStatus(newStatus);
     if (message !== undefined) {
       setStatusMessage(message);
     }
-  }, []);
+    updateUser({
+      status: newStatus,
+      ...(message !== undefined && { statusMessage: message }),
+    });
+  }, [updateUser]);
 
   const getStatusLabel = useCallback((userStatus: UserStatus) => {
     switch (userStatus) {

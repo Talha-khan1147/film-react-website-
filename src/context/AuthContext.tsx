@@ -9,9 +9,16 @@ export interface AuthContextType {
   user: CurrentUserProfile | null;
   isAuthenticated: boolean;
   isLoading: boolean;
-  loginWithGoogle: () => Promise<void>;
+  loginWithGoogle: () => Promise<CurrentUserProfile>;
+  loginQuickTest: (name?: string) => Promise<CurrentUserProfile>;
   logout: () => Promise<void>;
   updateUser: (updates: Partial<CurrentUserProfile>) => void;
+  completeProfile: (data: {
+    name: string;
+    username: string;
+    avatar?: string;
+    bio?: string;
+  }) => Promise<CurrentUserProfile>;
 }
 
 export const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -21,6 +28,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
+    // Check if user just returned from Google OAuth redirect
+    authService.checkRedirectResult().then((redirectUser) => {
+      if (redirectUser) {
+        setUser(redirectUser);
+      }
+    });
+
     // Listen to Firebase auth state changes
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
       if (firebaseUser) {
@@ -50,11 +64,23 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return () => unsubscribe();
   }, []);
 
-  const loginWithGoogle = async () => {
+  const loginWithGoogle = async (): Promise<CurrentUserProfile> => {
     setIsLoading(true);
     try {
       const googleUser = await authService.loginWithGoogle();
       setUser(googleUser);
+      return googleUser;
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const loginQuickTest = async (name?: string): Promise<CurrentUserProfile> => {
+    setIsLoading(true);
+    try {
+      const testUser = await authService.loginQuickTest(name);
+      setUser(testUser);
+      return testUser;
     } finally {
       setIsLoading(false);
     }
@@ -72,6 +98,21 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
+  const completeProfile = async (data: {
+    name: string;
+    username: string;
+    avatar?: string;
+    bio?: string;
+  }): Promise<CurrentUserProfile> => {
+    if (!user?.id) {
+      throw new Error('Not authenticated');
+    }
+    const updated = await userService.completeUserProfile(user.id, data);
+    setUser(updated);
+    localStorage.setItem('aurachat_auth_session', JSON.stringify(updated));
+    return updated;
+  };
+
   return (
     <AuthContext.Provider
       value={{
@@ -79,8 +120,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         isAuthenticated: !!user,
         isLoading,
         loginWithGoogle,
+        loginQuickTest,
         logout,
         updateUser,
+        completeProfile,
       }}
     >
       {children}
