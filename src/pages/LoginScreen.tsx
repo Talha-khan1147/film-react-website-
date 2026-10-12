@@ -125,21 +125,43 @@ export const LoginScreen: React.FC = () => {
           <div
             style={{
               width: '100%',
-              padding: '10px 14px',
+              padding: '12px 14px',
               backgroundColor: `${theme.colors.error}18`,
               border: `1px solid ${theme.colors.error}40`,
               borderRadius: theme.borderRadius.lg,
               display: 'flex',
-              alignItems: 'center',
-              gap: 10,
+              flexDirection: 'column',
+              gap: 8,
               color: theme.colors.error,
               fontSize: 13,
               marginBottom: 20,
               boxSizing: 'border-box',
             }}
           >
-            <AlertCircle size={18} style={{ flexShrink: 0 }} />
-            <span>{errorMessage}</span>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+              <AlertCircle size={18} style={{ flexShrink: 0 }} />
+              <span>{errorMessage}</span>
+            </div>
+            {errorMessage.includes('Authorized domains') && (
+              <button
+                type="button"
+                onClick={handleQuickLogin}
+                style={{
+                  alignSelf: 'flex-start',
+                  backgroundColor: theme.colors.primary,
+                  color: '#FFFFFF',
+                  border: 'none',
+                  borderRadius: 6,
+                  padding: '6px 12px',
+                  fontSize: 12,
+                  fontWeight: 600,
+                  cursor: 'pointer',
+                  marginTop: 4,
+                }}
+              >
+                ⚡ Use Instant Mobile Sign-In Instead
+              </button>
+            )}
           </div>
         )}
 

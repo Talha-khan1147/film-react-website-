@@ -35,6 +35,7 @@ function AppNavigation() {
           minDuration={2000}
           onFinish={() => setShowSplash(false)}
         />
+      )}
       <Router
         {...(Platform.OS === 'web'
           ? { future: { v7_startTransition: true, v7_relativeSplatPath: true } }
